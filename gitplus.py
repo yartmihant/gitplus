@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import os
 import git
+from git.exc import BadName, InvalidGitRepositoryError
 import sys
 import re
 from datetime import datetime
@@ -13,7 +14,7 @@ def has_commits(repo):
     try:
         repo.head.commit
         return True
-    except (git.exc.BadName, ValueError):
+    except (BadName, ValueError):
         return False
 
 def get_current_version():
@@ -128,7 +129,7 @@ if __name__ == '__main__':
     
     try:
         repo = git.Repo(".")
-    except git.exc.InvalidGitRepositoryError:
+    except InvalidGitRepositoryError:
         print("❌ Ошибка: Папка .git найдена, но это не валидный Git-репозиторий!")
         sys.exit(1)
 
@@ -164,20 +165,19 @@ if __name__ == '__main__':
         print('Nothing to commit!')
         sys.exit(0)
 
-    # Добавляем файлы
-    for diff in working_tree_diffs:
-        repo.git.add(diff.a_path)
-    for file in untracked_files:
-        repo.git.add(file)
+    # Добавляем все изменения (включая перемещения)
+    repo.git.add(A=True)
     
-    # Вывод статуса (как было)
+    # Вывод статуса
     if has_repo_commits:
-        for diff in repo.index.diff("HEAD"):
-            # Отображаем тип изменения
-            print(f"{diff.change_type}: {diff.a_path}")
+        for diff in repo.index.diff("HEAD", M=True):
+            if diff.change_type == 'R':
+                print(f"R: {diff.rename_from} → {diff.rename_to}")
+            else:
+                print(f"{diff.change_type}: {diff.a_path}")
     else:
         print("Первый коммит:")
-        for file in repo.untracked_files:
+        for file in untracked_files:
             print('-', file)
 
     # Выполнение сценария
