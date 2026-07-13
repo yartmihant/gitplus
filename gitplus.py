@@ -116,19 +116,20 @@ def parse_changelog_scenario(changelog_path):
 
 
 if __name__ == '__main__':
-    # Настройка рабочей директории
+    # Ищем корень репозитория, не меняя рабочую директорию на каждом шаге.
     current_dir = os.path.abspath(os.curdir)
-    while not os.path.exists('.git'):
-        current_dir = os.path.abspath(current_dir)
-        if current_dir != os.path.dirname(current_dir):
-            os.chdir(os.path.dirname(current_dir))
-        else:
+    while not os.path.exists(os.path.join(current_dir, '.git')):
+        parent_dir = os.path.dirname(current_dir)
+        if current_dir == parent_dir:
             print("❌ Ошибка: Git-репозиторий не найден!")
             print("💡 Для инициализации нового репозитория выполните: git init")
             sys.exit(1)
+        current_dir = parent_dir
+
+    os.chdir(current_dir)
     
     try:
-        repo = git.Repo(".")
+        repo = git.Repo(current_dir)
     except InvalidGitRepositoryError:
         print("❌ Ошибка: Папка .git найдена, но это не валидный Git-репозиторий!")
         sys.exit(1)
